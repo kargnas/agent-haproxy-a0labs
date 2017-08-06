@@ -136,7 +136,7 @@ class Agent:
 			pxname = self.rounddns == True and row['# pxname'] + " - " + socket.getfqdn() or row['# pxname']
 			if (pxname not in ret):
 				tmp = {}
-				tmp['svname'] = pxname
+				tmp['svname'] = "Test_" + pxname
 				tmp['servers'] = {}
 			else:
 				tmp = ret[pxname]
