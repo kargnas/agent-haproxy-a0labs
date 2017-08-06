@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import httplib, urllib, csv, urllib2, socket, os, time, json, datetime, requests, ConfigParser, sys, traceback
+import httplib, urllib, csv, urllib2, socket, os, time, json, datetime, requests, ConfigParser, sys, traceback, getopt
 
 def	my_int(sth):
 	if (sth == None or sth.isdigit() == False):
@@ -21,7 +21,7 @@ def singleton(cls):
 class Config():
 	def get(self, section, item):
 		return self.cp.get(section, item)
-	
+
 	def getInt(self, section, item):
 		return self.cp.getint(section, item)
 
@@ -29,8 +29,19 @@ class Config():
 		return self.cp.getboolean(section, item)
 
 	def __init__(self):
+		self.config = 'haproxy-agent.cfg'
+
+		try:
+			opts, args = getopt.getopt(argv,"c:",["config="])
+		except getopt.GetoptError:
+			print 'newrelic-haproxy-agent -c <configfile>'
+			sys.exit(2)
+		for opt, arg in opts:
+			if opt in ("-i", "--ifile"):
+				self.config = arg
+
 		self.cp = ConfigParser.RawConfigParser()
-		self.cp.read('/etc/newrelic/agent-a0labs.cfg')
+		self.cp.read(self.config)
 
 class Agent:
 	def update_postdata(self):
@@ -77,7 +88,7 @@ class Agent:
 			delta = value - self.old[name][label]
 		self.old[name][label] = value
 		self.populateMetrics(metrics, value_type, scale, delta)
-	
+
 	def get_csv(self):
 		response = requests.get(Config().get('Haproxy', 'csv_url'), auth=(Config().get('Haproxy', 'username'), Config().get('Haproxy', 'password')))
 		if (response.status_code != 200):
@@ -104,7 +115,7 @@ class Agent:
 		if (label not in row):
 			row[label] = value
 		else:
-			row[label] += value	
+			row[label] += value
 
 	def reformat_average_numeric_value(self, row, label, value):
 		if (not str(value).isdigit()):
@@ -118,7 +129,7 @@ class Agent:
 		else:
 			row[label] = ((row[label] * row[cnt_label]) + value) / (row[cnt_label] + 1)
 			row[cnt_label] += 1
-	
+
 	def reformat_csv(self, csv):
 		ret = {}
 		for row in csv:
@@ -141,7 +152,7 @@ class Agent:
 				self.reformat_add_numeric_value(tmp, 'back_sessions', my_int(row['stot']))
 				httpreq = my_int(row['hrsp_1xx']) + my_int(row['hrsp_2xx']) + my_int(row['hrsp_3xx']) + my_int(row['hrsp_4xx']) + my_int(row['hrsp_5xx']) + my_int(row['hrsp_other'])
 				self.reformat_add_numeric_value(tmp, 'back_requests', httpreq)
-				
+
 				self.reformat_add_numeric_value(tmp, 'back_err_requests', my_int(row['ereq']))
 				self.reformat_add_numeric_value(tmp, 'back_err_connection', my_int(row['econ']))
 				self.reformat_add_numeric_value(tmp, 'back_err_rsp', my_int(row['eresp']))
@@ -151,7 +162,7 @@ class Agent:
 				self.reformat_add_numeric_value(tmp, 'back_rsp_3xx', my_int(row['hrsp_3xx']))
 				self.reformat_add_numeric_value(tmp, 'back_rsp_4xx', my_int(row['hrsp_4xx']))
 				self.reformat_add_numeric_value(tmp, 'back_rsp_5xx', my_int(row['hrsp_5xx']))
-				
+
 				self.reformat_add_numeric_value(tmp, 'back_bytes_in', my_int(row['bin']) * 8)
 				self.reformat_add_numeric_value(tmp, 'back_bytes_out', my_int(row['bout']) * 8)
 
@@ -165,7 +176,7 @@ class Agent:
 					tmp['servers'][svname] = {}
 				self.reformat_add_numeric_value(tmp['servers'][svname], 'back_bytes_in', my_int(row['bin']) * 8)
 				self.reformat_add_numeric_value(tmp['servers'][svname], 'back_bytes_out', my_int(row['bout']) * 8)
-				
+
 				self.reformat_add_numeric_value(tmp['servers'][svname], 'back_sessions', my_int(row['stot']))
 				self.reformat_add_numeric_value(tmp['servers'][svname], 'downtime', my_int(row['downtime']))
 				self.reformat_add_numeric_value(tmp['servers'][svname], 'back_connection_rate', my_int(row['scur']))
@@ -173,7 +184,7 @@ class Agent:
 				self.reformat_add_numeric_value(tmp['servers'][svname], 'back_requests', httpreq)
 
 			ret[pxname] = tmp
-			
+
 		return ret
 
 	def get_component_from_csv(self, csv):
@@ -229,7 +240,7 @@ class Agent:
 
 			if ('back_requests' in row):
 				self.populateDeltaMetrics(row['svname'], metrics, "Request/Total", "Requests", row['back_requests'])
-			
+
 			if ('back_cx_time' in row):
 				self.populateMetrics(metrics, "Responses/ConnectionTime", "MS", row['back_cx_time'])
 			if ('back_rsp_time' in row):
@@ -247,7 +258,7 @@ class Agent:
 				self.populateMetrics(metrics, "SessionRate/Servers/" + server, 'Sessions', row['servers'][server]['back_connection_rate'])
 				self.populateDeltaMetrics(row['svname'], metrics, "RequestRate/" + server, 'Requests', row['servers'][server]['back_requests'])
 				self.populateDeltaMetrics(row['svname'], metrics, "Downtime/" + server, 'Seconds', row['servers'][server]['downtime'])
-			self.components[row['svname']]['metrics'] = metrics			
+			self.components[row['svname']]['metrics'] = metrics
 
 	def run(self):
 		run = True
@@ -281,7 +292,7 @@ class Agent:
 				code = "THROWN"
 			if (run):
 				time.sleep( int(self.poll_cycle))
-				
+
 	def __init__(self):
 		# Init NewRelic Variables
 		self.platform_api_uri = Config().get('NewRelicAPI', 'uri')
@@ -301,7 +312,7 @@ class Agent:
 
 		# Init old dict for delta computing values
 		self.old = {}
-		
+
 		# Init time of program start
 		self.last_poll_time = time.time() - float(self.poll_cycle)
 

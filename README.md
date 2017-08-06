@@ -10,40 +10,44 @@ This plugin allows you to monitor your HAproxy loadbalancer. You can see the sta
 
 ### Installation
 
-Create the newrelic conf directory if it is not created yet
+1. Create the newrelic conf directory if it is not created yet
+    ```bash
+    mkdir /etc/newrelic
+    ```
 
-`mkdir /etc/newrelic`
+2. Copy the config file into this directory
+    ```bash
+    cp agent-a0labs.cfg /etc/newrelic/
+    ```
 
-Copy the config file into this directory
+3. If you didn't install pip on your system yet, install it first.
+    ```bash
+    # In Ubuntu
+    apt-get install python-pip
+    ```
 
-`sudo cp agent-a0labs.cfg /etc/newrelic/`
+4. The python `requests` library is required:
+    ```
+    pip install requests
+    ```
 
-The python `requests` library is required:
-
-`pip install requests`
-
-If you chose to use a virtualenv, you may need to modify the example upstart/daemon scripts.
-
-
+### Configuration
 
 Fill the informations in the cfg file:
 - License Key
 - URL to access the stat CSV Haproxy's file
 - user and password
 Optional:
+- hostname if you want to customize your hostname in newrelic GUI.
 - enable/disable logs and specify the directory
+
+### RUN
+```
+newrelic-haproxy-agent -c haproxy-agent.cfg
+```
 
 ### Daemonize
 There are a few ways to be sure the plugin remains running as a Daemon or service, some are better than others - but each should be selected based on your need.
 
+- supervisord
 - use a nohup to launch it in background an detach it when you'll quit the terminal
-- use a crontab like "@reboot /usr/bin/python /path/to/bin"
-- put it in your /etc/init.d
-- use upstart
-
-./daemonize has some examples, you should read their comments before trying to use the scripts
-
-
-### Support
-
-Please useG [Github issues](https://github.com/Etherhypnos/agent-haproxy-a0labs/issues) for support.
