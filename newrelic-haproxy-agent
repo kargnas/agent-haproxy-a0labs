@@ -32,7 +32,7 @@ class Config():
 		self.config = 'haproxy-agent.cfg'
 
 		try:
-			opts, args = getopt.getopt(argv,"c:",["config="])
+			opts, args = getopt.getopt(sys.argv,"c:",["config="])
 		except getopt.GetoptError:
 			print 'newrelic-haproxy-agent -c <configfile>'
 			sys.exit(2)
@@ -136,7 +136,7 @@ class Agent:
 			pxname = self.rounddns == True and row['# pxname'] + " - " + socket.getfqdn() or row['# pxname']
 			if (pxname not in ret):
 				tmp = {}
-				tmp['svname'] = "Test_" + pxname
+				tmp['svname'] = pxname
 				tmp['servers'] = {}
 			else:
 				tmp = ret[pxname]
