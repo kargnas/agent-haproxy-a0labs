@@ -37,7 +37,7 @@ class Config():
 			print 'newrelic-haproxy-agent -c <configfile>'
 			sys.exit(2)
 		for opt, arg in opts:
-			if opt in ("-i", "--ifile"):
+			if opt in ("-c", "--config"):
 				self.config = arg
 
 		self.cp = ConfigParser.RawConfigParser()
@@ -50,7 +50,8 @@ class Agent:
 			self.post_data['components'].append(self.components[component])
 
 	def log(self, errtype, message):
-		self.logs_file.write("[" + errtype + "]" + ' ' + str(datetime.datetime.now()) + ' : ' + message +'\n')
+		if (logs.enabled):
+			self.logs_file.write("[" + errtype + "]" + ' ' + str(datetime.datetime.now()) + ' : ' + message +'\n')
 
 	def populateMetrics(self, metrics, value_type, scale, value):
 		label = "Component/" + value_type + "[" + scale + "]"
